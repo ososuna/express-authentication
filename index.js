@@ -60,7 +60,11 @@ app.post('/register', async(req, res) => {
   }
 });
 
-app.post('/logout', (req, res) => {});
+app.post('/logout', (req, res) => {
+  res
+    .clearCookie('access_token')
+    .json({message: 'logout successful'});
+});
 
 app.post('/protected', (req, res) => {
   const { user } = req.session;
