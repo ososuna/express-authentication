@@ -7,13 +7,25 @@ import { UserRepository } from './user-repository.js';
 const app = express();
 
 app.set('view engine', 'ejs');
+
 // middleware
 app.use(express.json());
 app.use(cookieParser());
+app.use((req, res, next) => {
+  const token = req.cookies.access_token;
+  req.session = { user: null };
+  try {
+    const data = jwt.verify(token, SECRET_JWT_KEY);
+    req.session.user = data;
+  } catch {}
+  // follow up to the next route or middleware
+  next();
+});
 
 app.get('/', (req, res) => {
+  const { user } = req.session;
   // this is SSR server side rendering
-  res.render('index');
+  res.render('index', user);
 });
 
 app.post('/login', async(req, res) => {
@@ -51,17 +63,9 @@ app.post('/register', async(req, res) => {
 app.post('/logout', (req, res) => {});
 
 app.post('/protected', (req, res) => {
-  const token = req.cookies.access_token;
-  if (!token) {
-    return res.status(403).send('access not authorized');
-  }
-  try {
-    const data = jwt.verify(token, SECRET_JWT_KEY);
-    res.render('protected', data);
-  } catch (error) {
-    return res.status(401).send('access not authorized');
-  }
-  res.render('protected', { username: 'admin' });
+  const { user } = req.session;
+  if (!user) return res.status(403).send('access not authorized');
+  res.render('protected', user);
 });
 
 app.listen(PORT, () => {
